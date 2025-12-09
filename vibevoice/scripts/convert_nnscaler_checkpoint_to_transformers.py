@@ -31,6 +31,13 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
     logger.info(f"Loading regular checkpoint from {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location="cpu") # ['model', 'optimizer', 'lr_scheduler', 'train_status', 'train_args', 'rng_states', 'nnscaler', 'dataloader']
     
+    
+    tie_word_embeddings = init_config['decoder_config'].get('tie_word_embeddings', True)
+    logger.info(f"Tie word embeddings: {tie_word_embeddings}")
+
+    init_config['decoder_config']['use_cache'] = True
+    config = VibeVoiceConfig(**init_config, tie_word_embeddings=tie_word_embeddings)
+
     # config = checkpoint['train_args']
     init_config_name = checkpoint['train_args']['vars']['model_args']['config_path']['relative_path']
     pretrained_name = checkpoint['train_args']['vars']['data_args']['tokenizer_path']
@@ -43,11 +50,6 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
     else:
         raise FileNotFoundError(f"Initial config file {init_config_path} not found. Please provide a valid path.")
 
-    tie_word_embeddings = init_config['decoder_config'].get('tie_word_embeddings', True)
-    logger.info(f"Tie word embeddings: {tie_word_embeddings}")
-
-    init_config['decoder_config']['use_cache'] = True
-    config = VibeVoiceConfig(**init_config, tie_word_embeddings=tie_word_embeddings)
 
     # # Extract the model state dict
     model_state_dict = {k.replace('model.model.', 'model.'): v for k, v in checkpoint["model"].items() if k.startswith('model.model.')}
